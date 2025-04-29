@@ -199,7 +199,6 @@ plt.show()
 - **實務限制**  
   - 初期需對每隻臂至少拉一次，若臂數量龐大，開銷不可忽略  
   - 計算 UCB 值的額外成本，對高維臂數場景挑戰較大
-# Reinforcement_hw3
 
 ## Softmax (Action Selection)
 
