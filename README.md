@@ -302,3 +302,91 @@ plt.show()
   - 可採用動態調整 `τ`（如隨時間衰減）以兼顧初期探索與後期利用  
   - 選擇算法時，需考慮環境非平穩性與計算成本因素
 
+## Thompson Sampling
+
+### 1. 演算法公式
+
+![image](https://github.com/user-attachments/assets/37c10936-eff3-4b19-bada-3db9e8ac0db9)
+
+
+### 2. ChatGPT Prompt
+
+```text
+"Please explain the Thompson Sampling algorithm for solving the Multi-Armed 
+Bandit problem. Describe the Bayesian intuition behind it, the posterior 
+updating process, and the arm selection rule. Provide the corresponding 
+mathematical formulas for Beta distribution updates in the Bernoulli reward case. 
+Discuss the practical advantages and possible limitations of Thompson Sampling 
+compared to other methods like UCB and Epsilon-Greedy."
+```
+
+### 3. 程式碼與圖表
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+class BernoulliBandit:
+    def __init__(self, k=10):
+        self.k = k
+        self.probs = np.random.rand(k)
+    def pull(self, a):
+        return np.random.rand() < self.probs[a]
+
+def run_thompson(bandit, steps=1000):
+    k = bandit.k
+    alpha = np.ones(k)
+    beta = np.ones(k)
+    rewards = np.zeros(steps)
+    for t in range(steps):
+        theta = np.random.beta(alpha, beta)
+        a = np.argmax(theta)
+        r = bandit.pull(a)
+        alpha[a] += r
+        beta[a] += 1 - r
+        rewards[t] = r
+    return rewards
+
+def simulate_thompson(runs=500, steps=1000):
+    avg_rewards = np.zeros(steps)
+    for _ in range(runs):
+        b = BernoulliBandit()
+        avg_rewards += run_thompson(b, steps)
+    return avg_rewards / runs
+
+avg_rewards = simulate_thompson()
+plt.figure()
+plt.plot(avg_rewards)
+plt.xlabel('Steps')
+plt.ylabel('Average Reward')
+plt.title('Thompson Sampling Performance')
+plt.show()
+```
+
+![image](https://github.com/user-attachments/assets/79f13561-061e-4892-8649-b4e6d1792c3d)
+
+
+### 4. 結果解釋
+
+- **貝葉斯直覺**  
+  - 以 Beta 分布作為對每個臂成功機率的先驗，隨資料累積動態更新後驗  
+  - 透過從後驗分佈抽樣 \(\theta_t(a)\)，在未知臂上保有探索機會
+
+- **後驗更新過程**  
+  - 成功 \((R_t=1)\) 時：\(\alpha \leftarrow \alpha + 1\)  
+  - 失敗 \((R_t=0)\) 時：\(\beta \leftarrow \beta + 1\)
+
+- **臂選擇規則**  
+  - 對每個臂抽樣 \(\theta\)，選擇擁有最大 \(\theta\) 的臂，自然平衡探索與利用
+
+- **優點**  
+  - 無需調整探索參數，依後驗不確定性自動決定探索強度  
+  - 在實務中常能達到低後悔值 (regret)
+
+- **缺點**  
+  - 每步需對所有臂抽樣並計算 Beta 分布，計算開銷較大  
+  - 需要對 reward 模型假設合理，對非伯努利獎勵需改用其他後驗分布
+
+- **與其他方法比較**  
+  - 相對 Epsilon-Greedy：能更精細地依不確定性進行探索  
+  - 相對 UCB：不需動態維護置信界計算，但理論後悔界較難推導  
